@@ -1,5 +1,5 @@
 const gameState = {
-    people: [],
+    objects: [],
     selectedPerson: null,
     lastUpdateTime: null,
 };
@@ -25,12 +25,15 @@ class Person {
         this.speed = 25;
 
         this.destination = null;
+
+        this.home = null;
     }
 
     draw() {
         ctx.shadowColor = COLORS.shadow;
         ctx.shadowBlur = 4;
-        drawCircle(this.position.x, this.position.y, this.size, this.color);
+        // drawCircle(this.position.x, this.position.y, this.size, this.color);
+        drawSquare(this.position.x, this.position.y, this.size, this.color);
     }
 
     update(timeElapsed) {
@@ -88,6 +91,49 @@ class Person {
     }
 }
 
+class Building {
+    constructor(i, j, width, height) { 
+        this.topRightCorner = {i, j};
+        this.width = width;
+        this.height = height;
+
+        this.color = 'white';
+
+        this.roads = [];
+    }
+
+    draw() {
+        const coords = getCoordinatesFromGrid(this.topRightCorner);
+        drawSquare(coords.x, coords.y, gameWidth / 12, this.color);
+    }
+
+    update() {}
+}
+
+class Road {
+    constructor(startPoint, endPoint, startBuilding, endBuilding) {
+        this.startPoint = startPoint;
+        this.endPoint = endPoint;
+
+        this.startBuilding = startBuilding;
+        this.endBuilding = endBuilding;
+    }
+
+    draw() {
+        ctx.strokeStyle = 'purple';
+        ctx.lineWidth = 20;
+
+        const startCoords = getCoordinatesFromGrid(this.startPoint);
+        const endCoords = getCoordinatesFromGrid(this.endPoint);
+        ctx.beginPath();
+        ctx.moveTo(startCoords.x, startCoords.y);
+        ctx.lineTo(endCoords.x, endCoords.y);
+        ctx.stroke();
+    }
+
+    update() {}
+}
+
 /* Core game functions */
 
 function animate() {
@@ -98,13 +144,20 @@ function animate() {
 
 function update() {
     const timeElapsed = (Date.now() - gameState.lastUpdateTime)/60;
-    gameState.people.forEach(person => person.update(timeElapsed));
+    gameState.objects.forEach(object => object.update(timeElapsed));
     gameState.lastUpdateTime = Date.now();
 }
 
 function draw() {
     ctx.clearRect(0, 0, gameWidth, gameHeight);
-    gameState.people.forEach(person => person.draw());
+
+    for (let i = 0; i < 5; i++) {
+        const position = gameHeight / 6 * (i+1);
+        drawHorizontalGridLine(position);
+        drawVerticalGridLine(position);
+    }
+
+    gameState.objects.forEach(object => object.draw());
     
 }
 
@@ -115,6 +168,31 @@ function drawCircle(x, y, size, color) {
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI*2);
         ctx.fill();
+}
+
+function drawSquare(x, y, size, color) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.rect(x - size / 2, y - size / 2, size, size);
+        ctx.fill();
+}
+
+function drawHorizontalGridLine(y) {
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(gameWidth, y);
+    ctx.stroke();
+}
+
+function drawVerticalGridLine(x) {
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, gameHeight);
+    ctx.stroke();
 }
 
 function getClickCoordinates({clientX, clientY}) {
@@ -141,6 +219,10 @@ function randInt(min, max) {
     return Math.floor(Math.random() * (max - min)) + min;
 }
 
+function getCoordinatesFromGrid({i, j}) {
+    return {x: (i + 1) * gameWidth / 6, y: (j + 1) * gameHeight / 6};
+}
+
 /* Setup */
 
 $(document).ready(() => {
@@ -149,27 +231,16 @@ $(document).ready(() => {
     gameWidth = parseInt($game.attr('width'));
     gameHeight = parseInt($game.attr('height'));
 
-    // Generate some random people
+    // Generate basic map
 
-    for (let i = 0; i < 10; i++) {
-        gameState.people.push(new Person(randInt(0, gameWidth), randInt(0, gameHeight)));
-    }
+    const building1 = new Building(0, 0, 1, 1);
+    const building2 = new Building(0, 1, 1, 1);
+    const road = new Road({i: 0, j: 0}, {i: 0, j: 1}, building1, building2);
+
+    gameState.objects.push(road, building1, building2);
 
     // Start animation loop
 
     gameState.lastUpdateTime = Date.now();
     animate();
-
-    // Create event handlers
-
-    $game.click(e => {
-        const coords = getClickCoordinates(e);
-
-        const person = findNearestPerson(coords);
-        if (person) {
-            person.select();
-        } else if (gameState.selectedPerson) {
-            gameState.selectedPerson.moveTo(coords);
-        }
-    });
 });
