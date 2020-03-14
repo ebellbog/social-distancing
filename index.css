@@ -7,6 +7,26 @@ body {
     text-align: center;
 }
 
+#directions {
+    position: absolute;
+    bottom: 2vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 75vh;
+
+    font-size: 2.5vh;
+    font-family: monospace;
+    line-height: 3vh;
+
+    color: white;
+    background-color: rgba(0, 0, 0, 0.3);
+
+    border-radius: 10px;
+    padding: 10px;
+
+    pointer-events: none;
+}
+
 #game {
     height: 100vh;
     width: 100vh;
